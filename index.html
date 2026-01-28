@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOLB Game Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">🏭</span>
+        <h1>MOLB Game Tool</h1>
+      </div>
+      <div class="header-right">
+        <button class="btn" id="showGraphBtn">📊 Graph</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Minimal Config Panel -->
+      <aside class="panel config-panel">
+        <h2 class="panel-title">⚙️ Parameters</h2>
+
+        <!-- Constraints from game -->
+        <section class="config-section">
+          <h3>Constraints</h3>
+          <div class="param-row">
+            <label class="param-label compact">
+              <span>Max Tijd/WS</span>
+              <input type="number" id="maxTime" value="47" class="input input-sm">
+            </label>
+            <label class="param-label compact">
+              <span>Max Stdev</span>
+              <input type="number" id="maxStdev" value="24" class="input input-sm">
+            </label>
+            <label class="param-label compact">
+              <span>Tool Var</span>
+              <input type="number" id="toolVariety" value="3" class="input input-sm">
+            </label>
+          </div>
+        </section>
+
+        <!-- Weights from game sheet -->
+        <section class="config-section">
+          <h3>Gewichten</h3>
+          <div class="weight-row">
+            <label><span>Econ</span><input type="number" id="weightEcon" value="9" class="input input-sm"></label>
+            <label><span>Social</span><input type="number" id="weightSocial" value="6" class="input input-sm"></label>
+            <label><span>Env</span><input type="number" id="weightEnv" value="8" class="input input-sm"></label>
+          </div>
+        </section>
+
+        <!-- Generate Button -->
+        <button class="btn btn-primary btn-large" id="generateBtn">
+          ▶ ZOEK PARETO OPLOSSINGEN
+        </button>
+
+        <!-- Export -->
+        <button class="btn btn-large" id="exportBtn">📤 Export Excel</button>
+      </aside>
+
+      <!-- Results Panel -->
+      <section class="panel results-panel">
+        <div id="resultsContent">
+          <div id="graphContainer"></div>
+          <div class="empty-state large" id="emptyResults">
+            <span class="empty-icon">🎯</span>
+            <p>Klik op "Zoek Pareto Oplossingen" om te starten</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Graph Modal -->
+  <div class="modal" id="graphModal">
+    <div class="modal-content modal-fullscreen">
+      <div class="modal-header">
+        <h3>📊 Precedence Graph</h3>
+        <button class="btn-close" id="closeGraphModal">&times;</button>
+      </div>
+      <div class="modal-body" id="graphModalContent"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
