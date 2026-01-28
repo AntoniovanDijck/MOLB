@@ -90,16 +90,19 @@ async function findParetoSolutions() {
     button.innerHTML = '<span class="spinner"></span> Zoeken...';
     document.getElementById('emptyResults').style.display = 'none';
 
-    // Get weights from UI
+    // Get weights from UI (absolute values, not ratios)
     const wE = parseInt(document.getElementById('weightEcon').value) || 9;
     const wS = parseInt(document.getElementById('weightSocial').value) || 6;
     const wEnv = parseInt(document.getElementById('weightEnv').value) || 8;
-    const total = wE + wS + wEnv;
-    config.weights = { economic: wE / total, social: wS / total, environmental: wEnv / total };
+    config.weights = { economic: wE, social: wS, environmental: wEnv };
 
     const maxStdev = parseInt(document.getElementById('maxStdev').value) || 24;
     const maxTime = parseInt(document.getElementById('maxTime').value) || 47;
     const toolVariety = parseInt(document.getElementById('toolVariety').value) || 3;
+
+    // Store in config for objectives.js
+    config.maxStdev = maxStdev;
+    config.minToolVariety = toolVariety;
 
     await new Promise(r => setTimeout(r, 50));
 

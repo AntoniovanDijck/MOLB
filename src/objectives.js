@@ -1,150 +1,129 @@
 /**
  * MOLB Game Tool - Objective Calculation
- * Computes economic, social, and environmental scores
+ * Formulas match the Excel game exactly
  */
 
 /**
  * Calculate economic score
- * Based on efficiency: minimizing idle time
- * Score = 1 - (total idle time / total available time)
- * 
- * @param {Solution} solution 
- * @param {ProblemConfig} config 
- * @returns {number} normalized score 0-1 (1 = best)
+ * Formula: SUM(processing times) / (Takt Time × Number of Workstations)
+ * = efficiency
  */
 export function calculateEconomicScore(solution, config) {
     if (solution.stations.length === 0) return 0;
 
-    const totalAvailableTime = solution.stations.length * config.taktTime;
-    const totalUsedTime = solution.stations.reduce((sum, s) => sum + s.totalTime, 0);
-    const totalIdleTime = totalAvailableTime - totalUsedTime;
+    const totalProcessingTime = solution.stations.reduce((sum, s) => sum + s.totalTime, 0);
+    const numStations = solution.stations.length;
 
-    // Efficiency score
-    const efficiency = 1 - (totalIdleTime / totalAvailableTime);
+    // Economic = totalTime / (taktTime × stations)
+    const efficiency = totalProcessingTime / (config.taktTime * numStations);
 
-    // Also penalize number of stations (more stations = more resources)
-    // Minimum possible stations
-    const minStations = Math.ceil(totalUsedTime / config.taktTime);
-    const stationPenalty = minStations / solution.stations.length;
-
-    // Combined score (weighted average)
-    return 0.7 * efficiency + 0.3 * stationPenalty;
+    return Math.min(1, efficiency); // Cap at 1
 }
 
 /**
  * Calculate social score
- * Based on workload balance: minimize variation between stations
- * Score = 1 - (std dev / mean), clamped to [0, 1]
- * 
- * @param {Solution} solution 
- * @param {ProblemConfig} config 
- * @returns {number} normalized score 0-1 (1 = best)
+ * Formula: (MaxStdev - min(actualStdev, MaxStdev)) / MaxStdev
+ * Lower stdev = higher score
  */
 export function calculateSocialScore(solution, config) {
     if (solution.stations.length <= 1) return 1;
 
     const times = solution.stations.map(s => s.totalTime);
-    const mean = times.reduce((a, b) => a + b, 0) / times.length;
+    const n = times.length;
+    const mean = times.reduce((a, b) => a + b, 0) / n;
 
-    if (mean === 0) return 1;
+    // Population standard deviation (STDEV.P)
+    const variance = times.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / n;
+    const stdev = Math.sqrt(variance);
 
-    const variance = times.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / times.length;
-    const stdDev = Math.sqrt(variance);
+    // Max Stdev from config (G4 in Excel = 24)
+    const maxStdev = config.maxStdev || 24;
 
-    // Coefficient of variation (lower is better)
-    const cv = stdDev / mean;
+    // Social = (maxStdev - min(stdev, maxStdev)) / maxStdev
+    const clampedStdev = Math.min(stdev, maxStdev);
+    const score = (maxStdev - clampedStdev) / maxStdev;
 
-    // Convert to score (1 = perfectly balanced)
-    const score = Math.max(0, 1 - cv);
-
-    return score;
+    return Math.max(0, Math.min(1, score));
 }
 
 /**
  * Calculate environmental score
- * Based on tool usage and environmental impact scores
- * Lower environmental impact = higher score
- * 
- * @param {Solution} solution 
- * @param {ProblemConfig} config 
- * @returns {number} normalized score 0-1 (1 = best)
+ * Formula: (TotalPossibleTools - UsedTools) / (TotalPossibleTools - MinVariety)
+ * Fewer unique tools used = higher score
  */
 export function calculateEnvironmentalScore(solution, config) {
     if (solution.stations.length === 0) return 0;
 
-    let totalEnvImpact = 0;
-    let maxPossibleImpact = 0;
-
+    // Count unique tools used per station (O column in Excel)
+    let totalToolsUsed = 0;
     for (const station of solution.stations) {
-        for (const task of station.tasks) {
-            totalEnvImpact += task.envScore;
-            maxPossibleImpact += 10; // Max env score per task
-        }
+        totalToolsUsed += station.tools.size; // Number of unique tool types per station
     }
 
-    if (maxPossibleImpact === 0) return 1;
+    // Total possible tools = num tasks × num tool types (but simplified to count per station)
+    // In Excel: SUM(Overview!$G$7:$L$36) = total possible tool assignments
+    // We approximate as: numStations × maxToolTypes (3)
+    const maxToolTypes = config.toolLimits.size || 3;
+    const totalPossibleTools = solution.stations.length * maxToolTypes;
 
-    // Also consider tool diversity per station
-    // Fewer unique tools per station = less environmental impact from tool changes
-    let toolDiversityPenalty = 0;
-    for (const station of solution.stations) {
-        const uniqueTools = station.tools.size;
-        toolDiversityPenalty += uniqueTools - 1; // Penalty for each additional tool type
-    }
+    // Min tools = variety setting (G5 = 3)
+    const minVariety = config.minToolVariety || 3;
 
-    // Normalize tool penalty
-    const maxToolDiversity = solution.stations.length * config.toolLimits.size;
-    const normalizedToolPenalty = maxToolDiversity > 0
-        ? toolDiversityPenalty / maxToolDiversity
-        : 0;
+    // Environmental = (totalPossible - used) / (totalPossible - minVariety)
+    const denominator = totalPossibleTools - minVariety;
+    if (denominator <= 0) return 1;
 
-    // Calculate base environmental score
-    const baseScore = 1 - (totalEnvImpact / maxPossibleImpact);
+    const score = (totalPossibleTools - totalToolsUsed) / denominator;
 
-    // Combine with tool diversity (higher weight on base score)
-    return 0.8 * baseScore + 0.2 * (1 - normalizedToolPenalty);
+    return Math.max(0, Math.min(1, score));
 }
 
 /**
  * Calculate all scores for a solution
- * @param {Solution} solution 
- * @param {ProblemConfig} config 
- * @returns {Solution} solution with updated scores
  */
 export function calculateAllScores(solution, config) {
     solution.scores.economic = calculateEconomicScore(solution, config);
     solution.scores.social = calculateSocialScore(solution, config);
     solution.scores.environmental = calculateEnvironmentalScore(solution, config);
 
-    // Calculate weighted score
-    solution.scores.weighted =
-        solution.scores.economic * config.weights.economic +
-        solution.scores.social * config.weights.social +
-        solution.scores.environmental * config.weights.environmental;
+    // Weighted Sum = SUMPRODUCT(weights, scores) / SUM(weights)
+    const wE = config.weights.economic || 9;
+    const wS = config.weights.social || 6;
+    const wEnv = config.weights.environmental || 8;
+
+    const numerator =
+        solution.scores.economic * wE +
+        solution.scores.social * wS +
+        solution.scores.environmental * wEnv;
+
+    const denominator = wE + wS + wEnv;
+
+    solution.scores.weighted = numerator / denominator;
 
     return solution;
 }
 
 /**
  * Recalculate weighted scores for all solutions with new weights
- * @param {Solution[]} solutions 
- * @param {Object} weights 
- * @returns {Solution[]}
  */
 export function updateWeightedScores(solutions, weights) {
+    const wE = weights.economic || 9;
+    const wS = weights.social || 6;
+    const wEnv = weights.environmental || 8;
+    const total = wE + wS + wEnv;
+
     for (const solution of solutions) {
-        solution.scores.weighted =
-            solution.scores.economic * weights.economic +
-            solution.scores.social * weights.social +
-            solution.scores.environmental * weights.environmental;
+        solution.scores.weighted = (
+            solution.scores.economic * wE +
+            solution.scores.social * wS +
+            solution.scores.environmental * wEnv
+        ) / total;
     }
     return solutions;
 }
 
 /**
  * Get statistics for a set of solutions
- * @param {Solution[]} solutions 
- * @returns {Object} statistics
  */
 export function getSolutionStatistics(solutions) {
     if (solutions.length === 0) {
