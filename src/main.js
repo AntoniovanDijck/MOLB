@@ -399,6 +399,12 @@ function renderResults() {
         bestScore: paretoFront[0]?.scores.weighted || 0
     };
 
+    // Filter out Pareto solutions from the list of all solutions
+    const paretoHashes = new Set(paretoFront.map(s => s.getHash()));
+    const otherSolutions = allSolutions
+        .filter(s => !paretoHashes.has(s.getHash()))
+        .sort((a, b) => b.scores.weighted - a.scores.weighted);
+
     content.innerHTML = `
     ${graph}
     
@@ -412,20 +418,26 @@ function renderResults() {
         <div class="stat-label">Pareto Front</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">${(stats.bestScore * 100).toFixed(1)}%</div>
+        <div class="stat-value">${((stats.bestScore || 0) * 100).toFixed(1)}%</div>
         <div class="stat-label">Beste Score</div>
       </div>
     </div>
     
     <h3 style="margin: 20px 0 10px; color: var(--accent-secondary);">🏆 Alle Pareto Oplossingen</h3>
     
-    ${renderAllSolutionsList(paretoFront)}
+    ${renderAllSolutionsList(paretoFront, 'pareto')}
+    
+    ${otherSolutions.length > 0 ? `
+        <h3 style="margin: 40px 0 10px; color: var(--text-secondary); opacity: 0.8;">📉 Andere Oplossingen (${otherSolutions.length})</h3>
+        ${renderAllSolutionsList(otherSolutions.slice(0, 20), 'other')}
+        ${otherSolutions.length > 20 ? `<p style="text-align:center; padding: 10px; color: var(--text-muted); font-size: 13px;">... en nog ${otherSolutions.length - 20} andere oplossingen</p>` : ''}
+    ` : ''}
     
     ${renderParetoChart(paretoFront, allSolutions, paretoFront[0])}
   `;
 }
 
-function renderAllSolutionsList(solutions) {
+function renderAllSolutionsList(solutions, listType = 'pareto') {
     if (solutions.length === 0) return '';
 
     const cards = solutions.map((sol, i) => {
@@ -442,8 +454,8 @@ function renderAllSolutionsList(solutions) {
             <div class="solution-header">
                 <span class="solution-rank">#${i + 1}</span>
                 <span class="solution-score">${(sol.scores.weighted * 100).toFixed(1)}%</span>
-                <button class="btn btn-sm view-graph-btn" data-solution-index="${i}">🔗 Graph</button>
-                <button class="btn btn-sm download-solution-btn" data-solution-index="${i}">📥 CSV</button>
+                <button class="btn btn-sm view-graph-btn" data-list-type="${listType}" data-solution-index="${i}">🔗 Graph</button>
+                <button class="btn btn-sm download-solution-btn" data-list-type="${listType}" data-solution-index="${i}">📥 CSV</button>
             </div>
             <div class="solution-scores">
                 <span>E: ${sol.scores.economic.toFixed(2)}</span>
@@ -457,16 +469,18 @@ function renderAllSolutionsList(solutions) {
 
     // Add event listeners after render
     setTimeout(() => {
-        document.querySelectorAll('.download-solution-btn').forEach(btn => {
+        document.querySelectorAll(`.download-solution-btn[data-list-type="${listType}"]`).forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.dataset.solutionIndex);
-                downloadSolutionCSV(paretoFront[index], index + 1);
+                const index = parseInt(e.currentTarget.dataset.solutionIndex);
+                const list = listType === 'pareto' ? paretoFront : allSolutions.filter(s => !new Set(paretoFront.map(p => p.getHash())).has(s.getHash())).sort((a, b) => b.scores.weighted - a.scores.weighted);
+                downloadSolutionCSV(list[index], index + 1);
             });
         });
-        document.querySelectorAll('.view-graph-btn').forEach(btn => {
+        document.querySelectorAll(`.view-graph-btn[data-list-type="${listType}"]`).forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const index = parseInt(e.target.dataset.solutionIndex);
-                showSolutionGraph(paretoFront[index], index + 1);
+                const index = parseInt(e.currentTarget.dataset.solutionIndex);
+                const list = listType === 'pareto' ? paretoFront : allSolutions.filter(s => !new Set(paretoFront.map(p => p.getHash())).has(s.getHash())).sort((a, b) => b.scores.weighted - a.scores.weighted);
+                showSolutionGraph(list[index], index + 1);
             });
         });
     }, 0);
