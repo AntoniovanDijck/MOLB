@@ -20,6 +20,8 @@
         <h1>MOLB Game Tool</h1>
       </div>
       <div class="header-right">
+        <button class="btn" id="importGraphBtn">📥 Import</button>
+        <button class="btn" id="exportGraphBtn">📤 Export</button>
         <button class="btn" id="editorModeBtn">✏️ Editor</button>
         <button class="btn" id="clearGraphBtn" style="display:none;">🗑️ Nieuw</button>
       </div>
@@ -65,7 +67,7 @@
           ▶ ZOEK PARETO OPLOSSINGEN
         </button>
 
-        <!-- Export -->
+        <!-- Export Results -->
         <button class="btn btn-large" id="exportBtn">📤 Export CSV</button>
       </aside>
 
@@ -77,13 +79,16 @@
 
           <div id="graphContainer"></div>
           <div class="empty-state large" id="emptyResults">
-            <span class="empty-icon">🎯</span>
-            <p>Klik op "Zoek Pareto Oplossingen" om te starten</p>
+            <span class="empty-icon">✏️</span>
+            <p>Klik op "✏️ Editor" om je graph te bouwen</p>
           </div>
         </div>
       </section>
     </main>
   </div>
+
+  <!-- Hidden file input for import -->
+  <input type="file" id="fileInput" accept=".json" style="display:none;">
 
   <script type="module" src="/src/main.js"></script>
 </body>
