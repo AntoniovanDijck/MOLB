@@ -10,11 +10,14 @@ import { calculateAllScores, getSolutionStatistics } from './objectives.js';
 import { findParetoFront, rankSolutions } from './pareto.js';
 import { renderPrecedenceGraph } from './graph.js';
 import { renderBestSolution, renderScoreBars, renderParetoChart, renderSolutionsTable, showToast } from './visualization.js';
+import { GraphEditor } from './graph-editor.js';
 
 // Global state
 let config = new ProblemConfig();
 let paretoFront = [];
 let allSolutions = [];
+let graphEditor = null;
+let editorMode = false;
 
 document.addEventListener('DOMContentLoaded', init);
 
@@ -26,19 +29,14 @@ function init() {
 
 function setupEventListeners() {
     document.getElementById('generateBtn').addEventListener('click', findParetoSolutions);
-    document.getElementById('showGraphBtn').addEventListener('click', () => {
-        document.getElementById('graphModalContent').innerHTML = renderPrecedenceGraph(config);
-        document.getElementById('graphModal').classList.add('active');
-    });
-    document.getElementById('closeGraphModal').addEventListener('click', () => {
-        document.getElementById('graphModal').classList.remove('active');
-    });
     document.getElementById('exportBtn').addEventListener('click', exportResults);
 
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        });
+    // Editor mode toggle
+    document.getElementById('editorModeBtn').addEventListener('click', toggleEditorMode);
+    document.getElementById('clearGraphBtn').addEventListener('click', () => {
+        if (confirm('Alle taken en verbindingen wissen?')) {
+            graphEditor?.clear();
+        }
     });
 }
 
@@ -63,9 +61,12 @@ function initMOLBData() {
     const prec = [
         ['T1', 'T3'], ['T3', 'T6'], ['T6', 'T10'], ['T6', 'T11'], ['T10', 'T14'], ['T11', 'T14'],
         ['T14', 'T18'], ['T18', 'T22'], ['T18', 'T23'], ['T22', 'T26'], ['T23', 'T26'],
-        ['T2', 'T4'], ['T4', 'T7'], ['T7', 'T11'], ['T7', 'T12'], ['T11', 'T15'], ['T12', 'T15'],
-        ['T15', 'T19'], ['T19', 'T23'], ['T19', 'T24'], ['T24', 'T27'], ['T26', 'T29'], ['T27', 'T29'], ['T29', 'T30'],
-        ['T5', 'T8'], ['T8', 'T12'], ['T8', 'T13'], ['T12', 'T16'], ['T13', 'T16'], ['T13', 'T17'],
+        ['T23', 'T27'], ['T26', 'T27'],
+        ['T2', 'T4'], ['T4', 'T7'], ['T4', 'T8'], // T4→T8 added
+        ['T7', 'T11'], ['T7', 'T12'], ['T11', 'T15'], ['T12', 'T15'],
+        ['T15', 'T19'], ['T19', 'T23'], ['T19', 'T24'], ['T24', 'T27'], ['T24', 'T28'],
+        ['T26', 'T29'], ['T27', 'T29'], ['T29', 'T30'],
+        ['T5', 'T8'], ['T8', 'T13'], ['T12', 'T13'], ['T12', 'T16'], ['T13', 'T16'], ['T13', 'T17'], // T8→T12 removed, T12→T13 added
         ['T16', 'T20'], ['T17', 'T21'], ['T20', 'T24'], ['T20', 'T25'], ['T21', 'T25'],
         ['T25', 'T28'], ['T28', 'T29'], ['T9', 'T17']
     ];
@@ -81,6 +82,50 @@ function renderGraph() {
     document.getElementById('graphContainer').innerHTML = renderPrecedenceGraph(config);
 }
 
+function toggleEditorMode() {
+    editorMode = !editorMode;
+    const editorBtn = document.getElementById('editorModeBtn');
+    const clearBtn = document.getElementById('clearGraphBtn');
+    const editorContainer = document.getElementById('graphEditorContainer');
+    const graphContainer = document.getElementById('graphContainer');
+
+    if (editorMode) {
+        editorBtn.innerHTML = '👁️ Bekijken';
+        editorBtn.classList.add('btn-primary');
+        clearBtn.style.display = 'block';
+        graphContainer.style.display = 'none';
+        editorContainer.style.display = 'block';
+
+        // Initialize editor
+        if (!graphEditor) {
+            graphEditor = new GraphEditor(editorContainer, config, () => {
+                // Callback when graph changes
+                showToast(`${config.tasks.size} taken, ${countEdges()} verbindingen`, 'success');
+            });
+        } else {
+            graphEditor.resize();
+            graphEditor.render();
+        }
+    } else {
+        editorBtn.innerHTML = '✏️ Editor';
+        editorBtn.classList.remove('btn-primary');
+        clearBtn.style.display = 'none';
+        graphContainer.style.display = 'block';
+        editorContainer.style.display = 'none';
+
+        // Re-render static graph
+        renderGraph();
+    }
+}
+
+function countEdges() {
+    let count = 0;
+    for (const froms of config.precedence.values()) {
+        count += froms.length;
+    }
+    return count;
+}
+
 /**
  * Generate many solutions and find Pareto front
  */
@@ -90,19 +135,16 @@ async function findParetoSolutions() {
     button.innerHTML = '<span class="spinner"></span> Zoeken...';
     document.getElementById('emptyResults').style.display = 'none';
 
-    // Get weights from UI (absolute values, not ratios)
+    // Get weights from UI
     const wE = parseInt(document.getElementById('weightEcon').value) || 9;
     const wS = parseInt(document.getElementById('weightSocial').value) || 6;
     const wEnv = parseInt(document.getElementById('weightEnv').value) || 8;
-    config.weights = { economic: wE, social: wS, environmental: wEnv };
+    const total = wE + wS + wEnv;
+    config.weights = { economic: wE / total, social: wS / total, environmental: wEnv / total };
 
     const maxStdev = parseInt(document.getElementById('maxStdev').value) || 24;
     const maxTime = parseInt(document.getElementById('maxTime').value) || 47;
     const toolVariety = parseInt(document.getElementById('toolVariety').value) || 3;
-
-    // Store in config for objectives.js
-    config.maxStdev = maxStdev;
-    config.minToolVariety = toolVariety;
 
     await new Promise(r => setTimeout(r, 50));
 

@@ -1280,3 +1280,121 @@ details summary:hover {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* Graph Editor */
+.graph-editor-container {
+  width: 100%;
+  height: 550px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: none;
+}
+
+.graph-editor-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.graph-editor-canvas-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.graph-editor-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+
+.graph-editor-sidebar {
+  width: 160px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-editor-sidebar h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 8px;
+}
+
+.graph-editor-sidebar hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 12px 0;
+}
+
+.drag-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: grab;
+  transition: var(--transition-fast);
+}
+
+.drag-item:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-card);
+}
+
+.drag-item:active {
+  cursor: grabbing;
+}
+
+.drag-node {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.drag-node.grey {
+  background: #6b7280;
+}
+
+.drag-node.green {
+  background: #22c55e;
+}
+
+.drag-node.blue {
+  background: #3b82f6;
+}
+
+.drag-node.orange {
+  background: #f59e0b;
+}
+
+.drag-item span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tips-list li {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tips-list li:last-child {
+  border-bottom: none;
+}

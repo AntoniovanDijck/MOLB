@@ -20,17 +20,18 @@
         <h1>MOLB Game Tool</h1>
       </div>
       <div class="header-right">
-        <button class="btn" id="showGraphBtn">📊 Graph</button>
+        <button class="btn" id="editorModeBtn">✏️ Editor</button>
+        <button class="btn" id="clearGraphBtn" style="display:none;">🗑️ Nieuw</button>
       </div>
     </header>
 
     <!-- Main Content -->
     <main class="main">
-      <!-- Minimal Config Panel -->
+      <!-- Config Panel -->
       <aside class="panel config-panel">
         <h2 class="panel-title">⚙️ Parameters</h2>
 
-        <!-- Constraints from game -->
+        <!-- Constraints -->
         <section class="config-section">
           <h3>Constraints</h3>
           <div class="param-row">
@@ -49,7 +50,7 @@
           </div>
         </section>
 
-        <!-- Weights from game sheet -->
+        <!-- Weights -->
         <section class="config-section">
           <h3>Gewichten</h3>
           <div class="weight-row">
@@ -65,12 +66,15 @@
         </button>
 
         <!-- Export -->
-        <button class="btn btn-large" id="exportBtn">📤 Export Excel</button>
+        <button class="btn btn-large" id="exportBtn">📤 Export CSV</button>
       </aside>
 
       <!-- Results Panel -->
       <section class="panel results-panel">
         <div id="resultsContent">
+          <!-- Graph Editor Container -->
+          <div id="graphEditorContainer" class="graph-editor-container"></div>
+
           <div id="graphContainer"></div>
           <div class="empty-state large" id="emptyResults">
             <span class="empty-icon">🎯</span>
@@ -79,17 +83,6 @@
         </div>
       </section>
     </main>
-  </div>
-
-  <!-- Graph Modal -->
-  <div class="modal" id="graphModal">
-    <div class="modal-content modal-fullscreen">
-      <div class="modal-header">
-        <h3>📊 Precedence Graph</h3>
-        <button class="btn-close" id="closeGraphModal">&times;</button>
-      </div>
-      <div class="modal-body" id="graphModalContent"></div>
-    </div>
   </div>
 
   <script type="module" src="/src/main.js"></script>
